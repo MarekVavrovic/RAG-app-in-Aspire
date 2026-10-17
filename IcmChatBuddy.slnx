@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="IcmChatAPI/IcmChatAPI.csproj" />
+  <Project Path="IcmChatBuddy.AppHost/IcmChatBuddy.AppHost.csproj" />
+  <Project Path="IcmChatBuddy.ServiceDefaults/IcmChatBuddy.ServiceDefaults.csproj" />
+  <Project Path="IngestionService/IngestionService.csproj" />
+</Solution>
