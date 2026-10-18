@@ -1,20 +1,22 @@
+using Microsoft.Extensions.AI;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 var ollama = builder.AddOllama("ollama").WithDataVolume();
 var chatModel = ollama.AddModel("chat", "llama3.2");
+var embeddings = ollama.AddModel("embeddings", "all-minilm");
 
 
-//builder.AddContainer("open-webui", "ghcr.io/open-webui/open-webui", "main")
-//    .WithHttpEndpoint(port: 3000, targetPort: 8080, name: "http")
-//    .WithEnvironment("OLLAMA_BASE_URL", ollama.GetEndpoint("http"))
-//    .WithLifetime(ContainerLifetime.Persistent)
-//    .WaitFor(ollama);
-
+var vectorStore = builder.AddSqlite("vector-store").WithSqliteWeb();
 
 builder.AddProject<Projects.IcmChatAPI>("icmchatapi")
     .WithReference(chatModel)
     .WaitFor(chatModel);
 
-builder.AddProject<Projects.IngestionService>("ingestionservice");
+builder.AddProject<Projects.IngestionService>("ingestionservice")
+    .WithReference(embeddings)
+    .WithReference(vectorStore)
+    .WaitFor(embeddings)
+    .WaitFor(vectorStore);
 
 builder.Build().Run();
