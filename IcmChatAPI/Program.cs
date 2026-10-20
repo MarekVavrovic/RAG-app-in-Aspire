@@ -1,10 +1,28 @@
 using IcmChatAPI;
+using IcmChatAPI.Models;
+using Microsoft.Extensions.AI;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddOllamaApiClient("chat").AddChatClient();
+string sqliteConnectionString = builder.Configuration.GetConnectionString("vector-store") 
+                ?? throw new InvalidOperationException("Connection string 'vector-store' not found.");
+builder.Services.AddSqliteCollection<Guid, IcmChunk>("data-icm-chunks", sqliteConnectionString);
+
+//redis
+builder.AddRedisDistributedCache("cache");
+
+
+builder.AddOllamaApiClient("chat")
+    .AddChatClient()
+    .UseFunctionInvocation()
+    .UseDistributedCache()
+    .UseOpenTelemetry(configure: c => c.EnableSensitiveData = builder.Environment.IsDevelopment());
+
+builder.AddOllamaApiClient("embeddings")
+    .AddEmbeddingGenerator()
+    .UseOpenTelemetry(configure: c => c.EnableSensitiveData = builder.Environment.IsDevelopment());
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi

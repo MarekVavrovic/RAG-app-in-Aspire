@@ -1,14 +1,18 @@
 using IngestionService;
+using Microsoft.Extensions.AI;
 
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.AddOllamaApiClient("embeddings").AddEmbeddingGenerator();
+builder.AddOllamaApiClient("embeddings")
+    .AddEmbeddingGenerator()
+     .UseOpenTelemetry(configure: c => c.EnableSensitiveData = builder.Environment.IsDevelopment());
 
 //database
 var sqliteConnectionString = builder.Configuration.GetConnectionString("vector-store");
-builder.Services.AddSqliteVectorStore(_ => sqliteConnectionString ?? throw new InvalidOperationException("Connection string 'vector-store' not found."));
+builder.Services.AddSqliteVectorStore(_ => sqliteConnectionString 
+?? throw new InvalidOperationException("Connection string 'vector-store' not found."));
 
 builder.Services.AddHostedService<Worker>();
 
