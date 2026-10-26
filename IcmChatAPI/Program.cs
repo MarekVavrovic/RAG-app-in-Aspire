@@ -5,27 +5,46 @@ using Microsoft.Extensions.AI;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-
-string sqliteConnectionString = builder.Configuration.GetConnectionString("vector-store") 
-                ?? throw new InvalidOperationException("Connection string 'vector-store' not found.");
-builder.Services.AddSqliteCollection<Guid, IcmChunk>("data-icm-chunks", sqliteConnectionString);
-
 //redis
 builder.AddRedisDistributedCache("cache");
 
-
-builder.AddOllamaApiClient("chat")
-    .AddChatClient()
-    .UseFunctionInvocation()
-    .UseDistributedCache()
-    .UseOpenTelemetry(configure: c => c.EnableSensitiveData = builder.Environment.IsDevelopment());
 
 builder.AddOllamaApiClient("embeddings")
     .AddEmbeddingGenerator()
     .UseOpenTelemetry(configure: c => c.EnableSensitiveData = builder.Environment.IsDevelopment());
 
+bool useAzure = builder.Configuration.GetValue<bool>("useAzure");
+
+if(useAzure)
+{
+    //azure search AI
+    builder.AddAzureSearchClient("azure-search");
+    builder.Services.AddIcmAzureSearchCollection("data-icm-chunks").AddOpenTelemetry();
+
+    builder.AddAzureChatCompletionsClient("foundry")
+       .AddChatClient("gpt-5.2")
+       .UseFunctionInvocation()
+       .UseDistributedCache()
+       .UseOpenTelemetry(configure: c => c.EnableSensitiveData = builder.Environment.IsDevelopment());
+}
+else
+{
+
+    string sqliteConnectionString = builder.Configuration.GetConnectionString("vector-store") 
+                    ?? throw new InvalidOperationException("Connection string 'vector-store' not found.");
+    builder.Services.AddSqliteCollection<Guid, IcmChunk>("data-icm-chunks", sqliteConnectionString);
+
+    builder.AddOllamaApiClient("chat")
+    .AddChatClient()
+    .UseFunctionInvocation()
+    .UseDistributedCache()
+    .UseOpenTelemetry(configure: c => c.EnableSensitiveData = builder.Environment.IsDevelopment());
+
+
+}
+
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
 builder.Services.AddOpenApi();
 builder.Services.AddOllamaResilienceHandlers();
 

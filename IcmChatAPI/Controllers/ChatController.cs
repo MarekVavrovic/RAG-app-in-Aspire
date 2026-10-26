@@ -25,21 +25,28 @@ namespace IcmChatAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<ChatResponse> SendQuery([FromBody] ChatRequest query)
+        public async Task<ActionResult<ChatResponse>> SendQuery([FromBody] ChatRequest query)
         {
-            List<ChatMessage> messages =
-            [
-                new ChatMessage(ChatRole.System, SystemPrompt),
-                new ChatMessage(ChatRole.User, query.Query)
-            ];
-
-            var response = await _chatClient.GetResponseAsync(messages, _chatOptions);
-
-            return new ChatResponse()
+            try
             {
-                Message = response.Text,
-                Status = "Success"
-            };
+                List<ChatMessage> messages =
+                [
+                    new(ChatRole.System, SystemPrompt),
+                    new(ChatRole.User, query.Query)
+                ];
+
+                var response = await _chatClient.GetResponseAsync(messages, _chatOptions);
+
+                return Ok(new ChatResponse { Message = response.Text, Status = "Success" });
+            }
+            catch (OperationCanceledException)
+            {
+                return StatusCode(StatusCodes.Status499ClientClosedRequest);
+            }
+            catch (Exception ex)
+            {
+                return Problem(ex.Message);
+            }
         }
 
         [Description("Search for information using a phrase or keyword. Relies on ICMs which already being loaded.")]

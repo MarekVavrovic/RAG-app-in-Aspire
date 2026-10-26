@@ -3,7 +3,6 @@ using Microsoft.Extensions.DataIngestion;
 using Microsoft.Extensions.DataIngestion.Chunkers;
 using Microsoft.Extensions.VectorData;
 using Microsoft.ML.Tokenizers;
-using System.Diagnostics;
 
 namespace IngestionService;
 
@@ -11,7 +10,8 @@ public class Worker(
     ILoggerFactory loggerFactory, 
     ILogger<Worker> logger, 
     IEmbeddingGenerator<string, Embedding<float>> embeddingGenerator,
-    VectorStore vectorStore) : BackgroundService
+    VectorStore vectorStore,
+    IConfiguration configuration) : BackgroundService
 {
     const string trackingFilePath = "tracking.txt";
 
@@ -35,7 +35,7 @@ public class Worker(
             using var vectorStoreWriter = new VectorStoreWriter<string>(vectorStore, 384, new VectorStoreWriterOptions()
             {
                 CollectionName = "data-icm-chunks",
-                DistanceFunction = DistanceFunction.CosineDistance,
+                DistanceFunction = configuration.GetValue<string>("vectorFunction"),
                 IncrementalIngestion = true
             });
 

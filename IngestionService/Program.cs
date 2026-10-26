@@ -9,10 +9,19 @@ builder.AddOllamaApiClient("embeddings")
     .AddEmbeddingGenerator()
      .UseOpenTelemetry(configure: c => c.EnableSensitiveData = builder.Environment.IsDevelopment());
 
-//database
-var sqliteConnectionString = builder.Configuration.GetConnectionString("vector-store");
-builder.Services.AddSqliteVectorStore(_ => sqliteConnectionString 
-?? throw new InvalidOperationException("Connection string 'vector-store' not found."));
+bool useAzure = builder.Configuration.GetValue<bool>("useAzure");
+
+if (useAzure)
+{
+    builder.AddAzureSearchClient("azure-search");
+    builder.Services.AddIcmAzureSearchVectorStore();
+}
+else
+{
+    var sqliteConnectionString = builder.Configuration.GetConnectionString("vector-store");
+    builder.Services.AddSqliteVectorStore(_ => sqliteConnectionString ??
+            throw new InvalidOperationException("Connection string 'vector-store' not found."));
+}
 
 builder.Services.AddHostedService<Worker>();
 
